@@ -257,6 +257,52 @@ describe("DisasterRelief", function () {
     });
   });
 
+  describe("Constructor Validation", function () {
+    it("T15: Should reject zero-address validator", async function () {
+      const [, v1, v2] = await hre.ethers.getSigners();
+      const DisasterRelief = await hre.ethers.getContractFactory("DisasterRelief");
+
+      await expect(
+        DisasterRelief.deploy("Test", [v1.address, hre.ethers.ZeroAddress, v2.address])
+      ).to.be.revertedWith("DisasterRelief: invalid validator address");
+    });
+
+    it("T16: Should reject duplicate validators", async function () {
+      const [, v1, v2] = await hre.ethers.getSigners();
+      const DisasterRelief = await hre.ethers.getContractFactory("DisasterRelief");
+
+      await expect(
+        DisasterRelief.deploy("Test", [v1.address, v1.address, v2.address])
+      ).to.be.revertedWith("DisasterRelief: duplicate validator");
+    });
+  });
+
+  describe("Admin Functions", function () {
+    it("T17: setActive toggles state and emits event", async function () {
+      const { contract, validator1 } = await loadFixture(deployFixture);
+
+      await expect(contract.connect(validator1).setActive(false))
+        .to.emit(contract, "FundStatusChanged")
+        .withArgs(false, validator1.address);
+
+      expect(await contract.isActive()).to.equal(false);
+
+      await expect(contract.connect(validator1).setActive(true))
+        .to.emit(contract, "FundStatusChanged")
+        .withArgs(true, validator1.address);
+
+      expect(await contract.isActive()).to.equal(true);
+    });
+
+    it("Should reject setActive by non-validator", async function () {
+      const { contract, nonValidator } = await loadFixture(deployFixture);
+
+      await expect(
+        contract.connect(nonValidator).setActive(false)
+      ).to.be.revertedWith("DisasterRelief: caller is not a validator");
+    });
+  });
+
   describe("Proposal Creation", function () {
     it("T5: Should reject proposal by non-validator", async function () {
       const { contract, nonValidator, donor1, validator1 } = await loadFixture(deployFixture);
