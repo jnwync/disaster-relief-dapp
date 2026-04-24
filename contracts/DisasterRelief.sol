@@ -184,4 +184,42 @@ contract DisasterRelief is ReentrancyGuard {
         Proposal storage p = proposals[_proposalId];
         return (p.descriptionHash, p.recipient, p.amount, p.approvalCount, p.executed, p.exists);
     }
+
+    // --- Mutating Functions ---
+
+    /// @notice Donate ETH to the disaster relief fund
+    /// @dev Requires non-zero value and active fund
+    function donate() external payable whenActive {
+        _processDonation();
+    }
+
+    /// @notice Accept direct ETH transfers
+    receive() external payable {
+        _processDonation();
+    }
+
+    /// @notice Toggle the fund active status
+    /// @param _isActive New active status
+    function setActive(bool _isActive) external onlyValidator {
+        isActive = _isActive;
+        emit FundStatusChanged(_isActive, msg.sender);
+    }
+
+    // --- Internal Functions ---
+
+    /// @dev Process a donation: validate, update accounting, track donor, emit event
+    function _processDonation() internal {
+        require(isActive, "DisasterRelief: fund is not active");
+        require(msg.value > 0, "DisasterRelief: donation must be greater than zero");
+
+        totalDonated += msg.value;
+        donorAmounts[msg.sender] += msg.value;
+
+        if (!isDonor[msg.sender]) {
+            isDonor[msg.sender] = true;
+            donorList.push(msg.sender);
+        }
+
+        emit DonationReceived(msg.sender, msg.value, block.timestamp);
+    }
 }
