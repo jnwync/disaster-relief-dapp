@@ -1,0 +1,9 @@
+.agents/
+.claude
+node_modules/
+cache/
+artifacts/
+.env
+coverage/
+typechain-types/
+coverage.json
