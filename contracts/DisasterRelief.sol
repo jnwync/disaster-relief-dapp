@@ -205,6 +205,16 @@ contract DisasterRelief is ReentrancyGuard {
         emit FundStatusChanged(_isActive, msg.sender);
     }
 
+    /// @notice Register an address as an eligible beneficiary
+    /// @param _beneficiary Address to register
+    function registerBeneficiary(address _beneficiary) external onlyValidator whenActive {
+        require(_beneficiary != address(0), "DisasterRelief: invalid beneficiary address");
+        require(!beneficiaries[_beneficiary], "DisasterRelief: beneficiary already registered");
+
+        beneficiaries[_beneficiary] = true;
+        emit BeneficiaryRegistered(_beneficiary, msg.sender);
+    }
+
     // --- Internal Functions ---
 
     /// @dev Process a donation: validate, update accounting, track donor, emit event

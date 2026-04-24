@@ -91,4 +91,42 @@ describe("DisasterRelief", function () {
       expect(await contract.totalDonated()).to.equal(amount * 2n);
     });
   });
+
+  describe("Beneficiary Registration", function () {
+    it("T11: Should reject zero-address beneficiary", async function () {
+      const { contract, validator1 } = await loadFixture(deployFixture);
+
+      await expect(
+        contract.connect(validator1).registerBeneficiary(hre.ethers.ZeroAddress)
+      ).to.be.revertedWith("DisasterRelief: invalid beneficiary address");
+    });
+
+    it("T12: Should reject duplicate beneficiary registration", async function () {
+      const { contract, validator1, donor1 } = await loadFixture(deployFixture);
+
+      await contract.connect(validator1).registerBeneficiary(donor1.address);
+
+      await expect(
+        contract.connect(validator1).registerBeneficiary(donor1.address)
+      ).to.be.revertedWith("DisasterRelief: beneficiary already registered");
+    });
+
+    it("Should register beneficiary and emit event", async function () {
+      const { contract, validator1, donor1 } = await loadFixture(deployFixture);
+
+      await expect(contract.connect(validator1).registerBeneficiary(donor1.address))
+        .to.emit(contract, "BeneficiaryRegistered")
+        .withArgs(donor1.address, validator1.address);
+
+      expect(await contract.beneficiaries(donor1.address)).to.equal(true);
+    });
+
+    it("Should reject registration by non-validator", async function () {
+      const { contract, nonValidator, donor1 } = await loadFixture(deployFixture);
+
+      await expect(
+        contract.connect(nonValidator).registerBeneficiary(donor1.address)
+      ).to.be.revertedWith("DisasterRelief: caller is not a validator");
+    });
+  });
 });
