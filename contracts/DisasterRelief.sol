@@ -242,6 +242,35 @@ contract DisasterRelief is ReentrancyGuard {
         emit ProposalCreated(proposalCount, _recipient, _amount, proposals[proposalCount].descriptionHash);
     }
 
+    /// @notice Approve a disbursement proposal. If threshold is met, funds are released.
+    /// @dev Uses nonReentrant and follows Checks-Effects-Interactions pattern
+    /// @param _proposalId ID of the proposal to approve
+    function approveDisbursement(uint256 _proposalId) external onlyValidator nonReentrant whenActive {
+        Proposal storage proposal = proposals[_proposalId];
+
+        // Checks
+        require(proposal.exists, "DisasterRelief: proposal does not exist");
+        require(!proposal.executed, "DisasterRelief: proposal already executed");
+        require(!hasApproved[_proposalId][msg.sender], "DisasterRelief: validator already approved");
+
+        // Effects
+        hasApproved[_proposalId][msg.sender] = true;
+        proposal.approvalCount++;
+
+        emit ProposalApproved(_proposalId, msg.sender, proposal.approvalCount);
+
+        if (proposal.approvalCount >= REQUIRED_APPROVALS) {
+            proposal.executed = true;
+            totalDisbursed += proposal.amount;
+
+            emit FundsReleased(_proposalId, proposal.recipient, proposal.amount);
+
+            // Interactions (external call last -- CEI pattern)
+            (bool success, ) = proposal.recipient.call{value: proposal.amount}("");
+            require(success, "DisasterRelief: ETH transfer failed");
+        }
+    }
+
     // --- Internal Functions ---
 
     /// @dev Process a donation: validate, update accounting, track donor, emit event
