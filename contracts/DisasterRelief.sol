@@ -215,6 +215,33 @@ contract DisasterRelief is ReentrancyGuard {
         emit BeneficiaryRegistered(_beneficiary, msg.sender);
     }
 
+    /// @notice Create a proposal to disburse funds to a registered beneficiary
+    /// @param _recipient Address of the beneficiary to receive funds
+    /// @param _amount Amount of ETH in wei to disburse
+    /// @param _description Human-readable description (hashed and stored on-chain)
+    function proposeDisbursement(
+        address payable _recipient,
+        uint256 _amount,
+        string calldata _description
+    ) external onlyValidator whenActive {
+        require(beneficiaries[_recipient], "DisasterRelief: recipient is not a registered beneficiary");
+        require(_amount > 0, "DisasterRelief: amount must be greater than zero");
+        require(_amount <= address(this).balance, "DisasterRelief: insufficient contract balance");
+
+        proposalCount++;
+
+        proposals[proposalCount] = Proposal({
+            descriptionHash: keccak256(abi.encodePacked(_description)),
+            recipient: _recipient,
+            amount: _amount,
+            approvalCount: 0,
+            executed: false,
+            exists: true
+        });
+
+        emit ProposalCreated(proposalCount, _recipient, _amount, proposals[proposalCount].descriptionHash);
+    }
+
     // --- Internal Functions ---
 
     /// @dev Process a donation: validate, update accounting, track donor, emit event

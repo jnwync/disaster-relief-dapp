@@ -129,4 +129,102 @@ describe("DisasterRelief", function () {
       ).to.be.revertedWith("DisasterRelief: caller is not a validator");
     });
   });
+
+  describe("Proposal Creation", function () {
+    it("T5: Should reject proposal by non-validator", async function () {
+      const { contract, nonValidator, donor1, validator1 } = await loadFixture(deployFixture);
+      await contract.connect(validator1).registerBeneficiary(donor1.address);
+
+      await expect(
+        contract.connect(nonValidator).proposeDisbursement(
+          donor1.address,
+          hre.ethers.parseEther("1.0"),
+          "Test proposal"
+        )
+      ).to.be.revertedWith("DisasterRelief: caller is not a validator");
+    });
+
+    it("T13: Should reject proposal exceeding contract balance", async function () {
+      const { contract, validator1, donor1 } = await loadFixture(deployFixture);
+      await contract.connect(validator1).registerBeneficiary(donor1.address);
+
+      await expect(
+        contract.connect(validator1).proposeDisbursement(
+          donor1.address,
+          hre.ethers.parseEther("1.0"),
+          "Test proposal"
+        )
+      ).to.be.revertedWith("DisasterRelief: insufficient contract balance");
+    });
+
+    it("T19: Should reject proposal when inactive", async function () {
+      const { contract, validator1, donor1 } = await loadFixture(deployFixture);
+      await contract.connect(validator1).registerBeneficiary(donor1.address);
+      await contract.connect(validator1).setActive(false);
+
+      await expect(
+        contract.connect(validator1).proposeDisbursement(
+          donor1.address,
+          hre.ethers.parseEther("1.0"),
+          "Test proposal"
+        )
+      ).to.be.revertedWith("DisasterRelief: fund is not active");
+    });
+
+    it("T20: Should reject proposal for non-beneficiary recipient", async function () {
+      const { contract, validator1, donor1, donor2 } = await loadFixture(deployFixture);
+      await contract.connect(donor1).donate({ value: hre.ethers.parseEther("5.0") });
+
+      await expect(
+        contract.connect(validator1).proposeDisbursement(
+          donor2.address,
+          hre.ethers.parseEther("1.0"),
+          "Test proposal"
+        )
+      ).to.be.revertedWith("DisasterRelief: recipient is not a registered beneficiary");
+    });
+
+    it("T21: Should store correct descriptionHash", async function () {
+      const { contract, validator1, donor1 } = await loadFixture(deployFixture);
+      await contract.connect(donor1).donate({ value: hre.ethers.parseEther("5.0") });
+      await contract.connect(validator1).registerBeneficiary(donor1.address);
+
+      const description = "Emergency food supplies";
+      const expectedHash = hre.ethers.solidityPackedKeccak256(["string"], [description]);
+
+      await contract.connect(validator1).proposeDisbursement(
+        donor1.address,
+        hre.ethers.parseEther("1.0"),
+        description
+      );
+
+      const proposal = await contract.getProposal(1);
+      expect(proposal.descriptionHash).to.equal(expectedHash);
+    });
+
+    it("Should create proposal and emit event", async function () {
+      const { contract, validator1, donor1 } = await loadFixture(deployFixture);
+      await contract.connect(donor1).donate({ value: hre.ethers.parseEther("5.0") });
+      await contract.connect(validator1).registerBeneficiary(donor1.address);
+
+      const amount = hre.ethers.parseEther("1.0");
+      const description = "Emergency food supplies";
+      const descHash = hre.ethers.solidityPackedKeccak256(["string"], [description]);
+
+      await expect(
+        contract.connect(validator1).proposeDisbursement(donor1.address, amount, description)
+      )
+        .to.emit(contract, "ProposalCreated")
+        .withArgs(1, donor1.address, amount, descHash);
+
+      expect(await contract.proposalCount()).to.equal(1);
+
+      const proposal = await contract.getProposal(1);
+      expect(proposal.recipient).to.equal(donor1.address);
+      expect(proposal.amount).to.equal(amount);
+      expect(proposal.approvalCount).to.equal(0);
+      expect(proposal.executed).to.equal(false);
+      expect(proposal.exists).to.equal(true);
+    });
+  });
 });
