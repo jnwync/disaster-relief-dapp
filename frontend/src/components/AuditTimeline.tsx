@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { usePublicClient } from "wagmi";
 import { CONTRACT_ADDRESS } from "@/lib/contract";
 import {
@@ -118,9 +119,9 @@ export function AuditTimeline() {
         <p className="text-muted-foreground">
           No activity yet — be the first to donate!
         </p>
-        <a href="/" className="mt-2 inline-block text-primary hover:underline">
+        <Link href="/" className="mt-2 inline-block text-primary hover:underline">
           Go to Donate page
-        </a>
+        </Link>
       </div>
     );
   }
