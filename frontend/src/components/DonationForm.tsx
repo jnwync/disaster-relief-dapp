@@ -16,6 +16,7 @@ import { getEtherscanUrl } from "@/lib/utils";
 export function DonationForm() {
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
   const { isConnected } = useAccount();
 
   const {
@@ -28,6 +29,10 @@ export function DonationForm() {
 
   const { isLoading: isConfirming, isSuccess } =
     useWaitForTransactionReceipt({ hash: txHash });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isSuccess) {
@@ -64,7 +69,7 @@ export function DonationForm() {
     <Card>
       <h2 className="mb-4 text-xl font-semibold">Make a Donation</h2>
 
-      {!isConnected ? (
+      {!mounted || !isConnected ? (
         <p className="text-muted-foreground">
           Connect your wallet to donate.
         </p>

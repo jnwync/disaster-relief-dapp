@@ -13,7 +13,7 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { EVENT_COLORS, type AuditEvent } from "@/types";
-import { parseAbiItem } from "viem";
+import { decodeEventLog, parseAbiItem } from "viem";
 
 const EVENT_ABIS = [
   parseAbiItem("event DonationReceived(address indexed donor, uint256 amount, uint256 timestamp)"),
@@ -45,23 +45,34 @@ export function AuditTimeline() {
     try {
       const allEvents: AuditEvent[] = [];
 
-      for (let i = 0; i < EVENT_ABIS.length; i++) {
-        const logs = await client.getLogs({
-          address: CONTRACT_ADDRESS,
-          event: EVENT_ABIS[i] as any,
-          fromBlock: 0n,
-          toBlock: "latest",
-        });
+      const logs = await client.getLogs({
+        address: CONTRACT_ADDRESS,
+        fromBlock: 0n,
+        toBlock: "latest",
+      });
 
-        for (const log of logs) {
-          allEvents.push({
-            type: EVENT_NAMES[i],
-            blockNumber: Number(log.blockNumber),
-            logIndex: Number(log.logIndex),
-            transactionHash: log.transactionHash,
-            timestamp: 0,
-            data: (log as any).args ?? {},
-          });
+      for (const log of logs) {
+        for (let i = 0; i < EVENT_ABIS.length; i++) {
+          try {
+            const decoded = decodeEventLog({
+              abi: [EVENT_ABIS[i]],
+              data: log.data,
+              topics: log.topics,
+              strict: false,
+            });
+
+            allEvents.push({
+              type: EVENT_NAMES[i],
+              blockNumber: Number(log.blockNumber),
+              logIndex: Number(log.logIndex),
+              transactionHash: log.transactionHash,
+              timestamp: 0,
+              data: decoded.args as Record<string, unknown>,
+            });
+            break;
+          } catch {
+            continue;
+          }
         }
       }
 
@@ -99,8 +110,6 @@ export function AuditTimeline() {
 
   useEffect(() => {
     fetchEvents();
-    const interval = setInterval(fetchEvents, 30000);
-    return () => clearInterval(interval);
   }, [fetchEvents]);
 
   if (loading) {
@@ -130,6 +139,11 @@ export function AuditTimeline() {
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={fetchEvents}>
+          Refresh
+        </Button>
+      </div>
       {visible.map((event) => (
         <div
           key={`${event.transactionHash}-${event.logIndex}`}

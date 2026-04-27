@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import { Navbar } from "@/components/Navbar";
+import { ClientOnly } from "@/components/ClientOnly";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,7 +32,9 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}
       >
         <Providers>
-          <Navbar />
+          <ClientOnly>
+            <Navbar />
+          </ClientOnly>
           <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
         </Providers>
       </body>
