@@ -1,7 +1,7 @@
 # ChainRelief — One-Week Sprint Plan
 
 **Project:** ChainRelief — Transparent Disaster Relief DApp
-**Sprint Duration:** 7 days
+**Sprint Duration:** 5 working days
 **Goal:** Deliver a demo-ready DApp with smart contract on Sepolia, functional frontend, full test coverage, documentation, and rehearsed presentation.
 
 ---
@@ -427,12 +427,11 @@
 
 ---
 
-### Days 6-7 — Buffer
+### Day 5 Closeout (No Extra Buffer Days)
 
-- Fix any issues discovered during rehearsal
-- Re-record backup video if needed
-- Final submission packaging
-- Team rest and confidence-building
+- Final submission packaging is completed on Day 5.
+- Any non-blocking stretch work not finished by Day 5 is explicitly deferred.
+- Demo fallback assets (backup video + script) must be finalized before end of Day 5.
 
 ---
 
@@ -466,29 +465,24 @@
 
 ---
 
-## 7. Capacity and Percentage Validation
+## 7. Capacity and Ownership Review
 
-### Effort Distribution
+### Ownership Balance
 
-| Person | Domain | Tasks | Estimated Hours | % of Total | Target % | Delta |
-|--------|--------|-------|----------------|------------|----------|-------|
-| **Aaron** | Backend | W1, W2, W3, W7 (contract bugs), W19 | 18h | **40%** | 40% | 0% |
-| **Allan** | QA + Frontend | W4, W5, W6, **W15** (`errors.ts` + component wiring), W17, W19 | 7h | **15%** | 15% | 0% |
-| **Wayne** | Frontend | W7 (frontend bugs), W14, W16, W19 | 7h | **15%** | 15% | 0% |
-| **Rhea** | Frontend | W8, W9, W10, **W21** (`Footer.tsx`), W19 | 7h | **15%** | 15% | 0% |
-| **Chito** | Docs/Frontend | W11, W12, W13, **W22** (`about/page.tsx`), W18, W19, W20 | 7h | **15%** | 15% | 0% |
-| **TOTAL** | | | **46h** | **100%** | 100% | **0%** |
+| Person | Primary Focus | Work Items | Relative Load |
+|--------|---------------|------------|---------------|
+| **Aaron** | Contract deployment and integration | W1, W3, contract-side W7, W19 | Heavy |
+| **Allan** | QA execution and error handling | W4, W5, W6, W15, W17, W19 | Medium |
+| **Wayne** | Frontend coordination and environment sync | W2, frontend-side W7, W14, W16, W19 | Medium |
+| **Rhea** | UI polish, responsive behavior, accessibility | W8, W9, W10, W21, W19 | Medium |
+| **Chito** | Docs, demo prep, and About page content | W11, W12, W13, W18, W20, W22 | Medium |
 
-### Validation Proof
+### Distribution Check
 
-- Aaron: 18/46 = 39.1% (target 40%) — within 1%
-- Allan: 7/46 = 15.2% — matches
-- Wayne: 7/46 = 15.2% — matches
-- Rhea: 7/46 = 15.2% — matches
-- Chito: 7/46 = 15.2% — matches
-- Total: 46/46 = 100%
-
-**Variance explanation:** Aaron's share is slightly under 40% in hours but his tasks carry the highest complexity and risk (deployment, integration, contract bug fixes). Effort points weight this to exactly 40%.
+- The split is feature-based, not setup-based, and each person owns a distinct part of the demo path.
+- Aaron carries the highest-risk work because deployment and on-chain integration are the critical path.
+- The remaining ownership is intentionally even across QA, frontend, UI, and docs so no one is overloaded with side work.
+- If scope slips, cut stretch items first: W14, W16, W20, W21, and W22.
 
 ---
 
