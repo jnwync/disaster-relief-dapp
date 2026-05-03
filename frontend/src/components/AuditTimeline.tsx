@@ -364,17 +364,23 @@ export function AuditTimeline() {
     fetchEvents();
   }, [fetchEvents]);
 
-  const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
-      const matchesType =
-        selectedEventType === "all" || event.type === selectedEventType;
-      const matchesTime = matchesTimeFilter(event, selectedTimeFilter);
-      const haystack = `${event.type} ${JSON.stringify(event.data)} ${event.transactionHash}`.toLowerCase();
-      const matchesSearch = searchQuery.trim() === "" || haystack.includes(searchQuery.toLowerCase());
+   const filteredEvents = useMemo(() => {
+     return events.filter((event) => {
+       const matchesType =
+         selectedEventType === "all" || event.type === selectedEventType;
+       const matchesTime = matchesTimeFilter(event, selectedTimeFilter);
 
-      return matchesType && matchesTime && matchesSearch;
-    });
-  }, [events, searchQuery, selectedEventType, selectedTimeFilter]);
+       // Safely serialize event.data (handle bigint values)
+       const safeDataString = JSON.stringify(event.data, (_, value) =>
+         typeof value === "bigint" ? value.toString() : value
+       );
+
+       const haystack = `${event.type} ${safeDataString} ${event.transactionHash}`.toLowerCase();
+       const matchesSearch = searchQuery.trim() === "" || haystack.includes(searchQuery.toLowerCase());
+
+       return matchesType && matchesTime && matchesSearch;
+     });
+   }, [events, searchQuery, selectedEventType, selectedTimeFilter]);
 
   const timelineEvents =
     previewState === "error"
