@@ -6,10 +6,27 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { truncateAddress } from "@/lib/utils";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 export function AdminGate({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Card className="mx-auto max-w-md text-center">
+        <h2 className="mb-2 text-xl font-semibold">Validator Dashboard</h2>
+        <p className="mb-4 text-muted-foreground">
+          Loading...
+        </p>
+      </Card>
+    );
+  }
 
   if (!isConnected) {
     return (

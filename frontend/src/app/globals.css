@@ -1,7 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: oklch(98.5% 0.005 264);
+  --color-background: #f4f6f8;
+  --color-brand-blue: #0b4f78;
+  --color-brand-green: #118c66;
+  --color-brand-dark: #0f1724;
+  --color-brand-logo: #23a1f6;
+  --color-brand-gold: #f29e38;
   --color-foreground: oklch(18% 0.02 264);
   --color-surface: oklch(100% 0 0);
 
@@ -37,6 +42,7 @@
   * {
     border-color: var(--color-border);
   }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
