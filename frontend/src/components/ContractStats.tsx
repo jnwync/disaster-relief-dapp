@@ -1,92 +1,59 @@
 "use client";
 
-import { useReadContract } from "wagmi";
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
-import { formatEth } from "@/lib/utils";
-import { Card } from "@/components/ui/Card";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { Badge } from "@/components/ui/Badge";
+import { Activity, Heart, Wallet } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+const STATS: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  delta: string;
+}[] = [
+  {
+    icon: Heart,
+    label: "Total Funds Raised",
+    value: "₱ 12,450,000",
+    delta: "+1.2M this week",
+  },
+  {
+    icon: Activity,
+    label: "Total Disbursed",
+    value: "₱ 10,200,000",
+    delta: "82% utilization",
+  },
+  {
+    icon: Wallet,
+    label: "Number of Donors",
+    value: "4,521",
+    delta: "+34 today",
+  },
+];
 
 export function ContractStats() {
-  const { data: disasterName, isLoading: nameLoading } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "disasterName",
-  });
-
-  const { data: active, isLoading: activeLoading } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "isActive",
-  });
-
-  const { data: totalDonated, isLoading: donatedLoading } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "totalDonated",
-    query: { refetchInterval: 12000 },
-  });
-
-  const { data: totalDisbursed } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "totalDisbursed",
-    query: { refetchInterval: 12000 },
-  });
-
-  const { data: balance } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "getContractBalance",
-    query: { refetchInterval: 12000 },
-  });
-
-  const { data: donorCount } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "getDonorCount",
-    query: { refetchInterval: 12000 },
-  });
-
-  if (nameLoading || activeLoading || donatedLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const stats = [
-    { label: "Total Donated", value: formatEth(totalDonated as bigint ?? 0n) + " ETH" },
-    { label: "Total Disbursed", value: formatEth(totalDisbursed as bigint ?? 0n) + " ETH" },
-    { label: "Balance", value: formatEth(balance as bigint ?? 0n) + " ETH" },
-    { label: "Donors", value: (donorCount as bigint ?? 0n).toString() },
-  ];
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {disasterName as string}
-        </h1>
-        <Badge variant={active ? "success" : "destructive"}>
-          {active ? "Active" : "Inactive"}
-        </Badge>
-      </div>
+    <div className="grid gap-6 xl:grid-cols-3">
+      {STATS.map(({ icon: Icon, label, value, delta }) => (
+        <div
+          key={label}
+          className="flex items-center gap-4 rounded-[14px] border p-6"
+          style={{
+            background: "rgba(255, 255, 255, 0.7)",
+            borderColor: "rgba(255, 255, 255, 0.5)",
+            boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.06)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[rgba(11,79,120,0.1)]">
+            <Icon size={24} color="#0B4F78" />
+          </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="p-4">
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-            <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
-          </Card>
-        ))}
-      </div>
+          <div>
+            <p className="text-sm font-medium text-[#6B7280]">{label}</p>
+            <p className="text-2xl font-bold leading-8 text-[#0F1724]">{value}</p>
+            <p className="text-xs font-medium text-[#118C66]">{delta}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
