@@ -230,6 +230,23 @@ export default function AdminPage() {
     })
     .filter((p) => p && p.exists && !p.executed) || [];
 
+  const executedProposalsList = proposalsData
+    ?.map((res, index) => {
+      const data = res.result as [string, string, bigint, bigint, boolean, boolean] | undefined;
+      if (!data) return null;
+      return {
+        id: index + 1,
+        descriptionHash: data[0],
+        recipient: data[1],
+        amount: data[2],
+        approvalCount: Number(data[3]),
+        executed: data[4],
+        exists: data[5],
+      };
+    })
+    .filter((p) => p && p.exists && p.executed)
+    .sort((a, b) => b!.id - a!.id) || [];
+
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -508,6 +525,41 @@ export default function AdminPage() {
                     >
                       {isPendingApprove ? "Approving..." : "Approve Proposal"}
                     </Button>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Executed Proposals History */}
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">Executed Proposals History</h2>
+              <Badge variant="outline">{executedProposalsList.length} executed</Badge>
+            </div>
+            
+            {executedProposalsList.length === 0 ? (
+              <Card className="p-12 text-center">
+                <p className="text-muted-foreground">
+                  No executed proposals yet.
+                </p>
+              </Card>
+            ) : (
+              <div className="grid gap-4 opacity-75">
+                {executedProposalsList.map((proposal) => (
+                  <Card key={proposal!.id} className="p-6 bg-slate-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-medium text-slate-700">Proposal #{proposal!.id}</h3>
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">Fully Executed</Badge>
+                        </div>
+                        <p className="text-sm text-slate-500 mt-1">Recipient: {proposal!.recipient}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-slate-700">{formatEther(proposal!.amount)} ETH</div>
+                      </div>
+                    </div>
                   </Card>
                 ))}
               </div>
