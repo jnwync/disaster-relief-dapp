@@ -8,12 +8,18 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2 } from "lucide-react";
-import { useAccount, useReadContract, useWriteContract, useReadContracts } from "wagmi";
+import {
+  useReadContract,
+  useWriteContract,
+  useReadContracts,
+  usePublicClient,
+  useWatchContractEvent,
+} from "wagmi";
 import { parseEther, formatEther } from "viem";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
+import { useEffect } from "react";
 
 export default function AdminPage() {
-
   // ----- Global Fund Status -----
   const { data: isActive, refetch: refetchIsActive } = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -53,6 +59,45 @@ export default function AdminPage() {
       args: [beneficiaryAddress],
     });
   };
+
+  const publicClient = usePublicClient();
+  const [beneficiariesList, setBeneficiariesList] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchBeneficiaries = async () => {
+      if (!publicClient) return;
+      try {
+        const logs = await publicClient.getContractEvents({
+          address: CONTRACT_ADDRESS,
+          abi: CONTRACT_ABI,
+          eventName: "BeneficiaryRegistered",
+          fromBlock: 0n,
+          toBlock: "latest",
+        });
+        const addresses = logs.map(
+          (log: any) => log.args.beneficiary as string
+        );
+        setBeneficiariesList([...new Set(addresses)]);
+      } catch (err) {
+        console.error("Failed to fetch beneficiaries:", err);
+      }
+    };
+    fetchBeneficiaries();
+  }, [publicClient]);
+
+  useWatchContractEvent({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    eventName: "BeneficiaryRegistered",
+    onLogs(logs) {
+      const newAddresses = logs.map(
+        (log: any) => log.args.beneficiary as string
+      );
+      setBeneficiariesList((prev) => [
+        ...new Set([...prev, ...newAddresses]),
+      ]);
+    },
+  });
 
   // ----- Create Funding Proposal -----
   const [proposalRecipient, setProposalRecipient] = useState("");
@@ -243,6 +288,33 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </Card>
+
+          {/* Registered Beneficiaries List */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">Registered Beneficiaries</h2>
+              <Badge variant="outline">{beneficiariesList.length} total</Badge>
+            </div>
+            {beneficiariesList.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground border rounded-md border-dashed">
+                No beneficiaries registered yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {beneficiariesList.map((addr) => (
+                  <div
+                    key={addr}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md"
+                  >
+                    <span className="font-mono text-sm break-all">{addr}</span>
+                    <Badge variant="outline" className="mt-2 sm:mt-0 w-fit">
+                      Eligible
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           {/* Create Funding Proposal */}
