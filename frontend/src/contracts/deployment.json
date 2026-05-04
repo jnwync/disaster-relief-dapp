@@ -1,7 +1,7 @@
 {
-  "contractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  "network": "localhost",
-  "chainId": 31337,
-  "deployedAt": "2026-05-04T03:21:33.239Z",
+  "contractAddress": "0xF0aB71294383EB2c72906FBDc878549B51BEc9dc",
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployedAt": "2026-05-04T06:19:01.025Z",
   "contractName": "DisasterRelief"
 }

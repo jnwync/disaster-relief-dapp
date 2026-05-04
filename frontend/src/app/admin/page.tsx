@@ -40,17 +40,20 @@ export default function AdminPage() {
     setBeneficiaryError("");
 
     try {
+      const currentBlock = await publicClient.getBlockNumber();
+      const fromBlock = currentBlock > 5000n ? currentBlock - 5000n : 0n;
+
       const [registeredLogs, removedLogs] = await Promise.all([
         publicClient.getLogs({
           address: CONTRACT_ADDRESS,
           event: BENEFICIARY_REGISTERED_EVENT,
-          fromBlock: 0n,
+          fromBlock,
           toBlock: "latest",
         }),
         publicClient.getLogs({
           address: CONTRACT_ADDRESS,
           event: BENEFICIARY_REMOVED_EVENT,
-          fromBlock: 0n,
+          fromBlock,
           toBlock: "latest",
         }),
       ]);
@@ -149,43 +152,6 @@ export default function AdminPage() {
     });
   };
 
-  const [beneficiariesList, setBeneficiariesList] = useState<string[]>([]);
-
-  useEffect(() => {
-    const fetchBeneficiaries = async () => {
-      if (!publicClient) return;
-      try {
-        const logs = await publicClient.getContractEvents({
-          address: CONTRACT_ADDRESS,
-          abi: CONTRACT_ABI,
-          eventName: "BeneficiaryRegistered",
-          fromBlock: 0n,
-          toBlock: "latest",
-        });
-        const addresses = logs.map(
-          (log: any) => log.args.beneficiary as string
-        );
-        setBeneficiariesList([...new Set(addresses)]);
-      } catch (err) {
-        console.error("Failed to fetch beneficiaries:", err);
-      }
-    };
-    fetchBeneficiaries();
-  }, [publicClient]);
-
-  useWatchContractEvent({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    eventName: "BeneficiaryRegistered",
-    onLogs(logs) {
-      const newAddresses = logs.map(
-        (log: any) => log.args.beneficiary as string
-      );
-      setBeneficiariesList((prev) => [
-        ...new Set([...prev, ...newAddresses]),
-      ]);
-    },
-  });
 
   const handleRemoveBeneficiary = () => {
     if (!selectedBeneficiary) return;

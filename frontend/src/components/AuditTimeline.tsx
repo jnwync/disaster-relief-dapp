@@ -296,9 +296,12 @@ export function AuditTimeline() {
       setFetchError("");
       const allEvents: AuditEvent[] = [];
 
+      const currentBlock = await client.getBlockNumber();
+      const fromBlock = currentBlock > 5000n ? currentBlock - 5000n : 0n;
+
       const logs = await client.getLogs({
         address: CONTRACT_ADDRESS,
-        fromBlock: 0n,
+        fromBlock,
         toBlock: "latest",
       });
 
@@ -369,7 +372,7 @@ export function AuditTimeline() {
       const matchesType =
         selectedEventType === "all" || event.type === selectedEventType;
       const matchesTime = matchesTimeFilter(event, selectedTimeFilter);
-      const haystack = `${event.type} ${JSON.stringify(event.data)} ${event.transactionHash}`.toLowerCase();
+      const haystack = `${event.type} ${JSON.stringify(event.data, (_, v) => typeof v === 'bigint' ? v.toString() : v)} ${event.transactionHash}`.toLowerCase();
       const matchesSearch = searchQuery.trim() === "" || haystack.includes(searchQuery.toLowerCase());
 
       return matchesType && matchesTime && matchesSearch;
