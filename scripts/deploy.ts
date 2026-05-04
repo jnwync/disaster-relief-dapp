@@ -29,6 +29,16 @@ async function main() {
   console.log("DisasterRelief deployed to:", contractAddress);
   console.log("Network:", network.name, "ChainId:", network.chainId.toString());
 
+  // Fund the contract with 10 ETH for testing
+  const [deployer] = await hre.ethers.getSigners();
+  const fundAmount = hre.ethers.parseEther("10");
+  const tx = await deployer.sendTransaction({
+    to: contractAddress,
+    value: fundAmount,
+  });
+  await tx.wait();
+  console.log(`Funded contract with 10 ETH (tx: ${tx.hash})`);
+
   // Export ABI
   const artifactPath = path.join(
     __dirname,

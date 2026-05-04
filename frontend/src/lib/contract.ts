@@ -1,8 +1,9 @@
 import deploymentData from "../contracts/deployment.json";
 import abiData from "../contracts/DisasterRelief.json";
+import { Abi } from "viem";
 
 export const CONTRACT_ADDRESS = deploymentData.contractAddress as `0x${string}`;
-export const CONTRACT_ABI = abiData as readonly unknown[];
+export const CONTRACT_ABI = abiData as Abi;
 export const CHAIN_ID = deploymentData.chainId;
 
 export const VALIDATORS = [
