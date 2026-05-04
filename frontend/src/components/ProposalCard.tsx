@@ -11,6 +11,7 @@ import { formatEth, truncateAddress, getEtherscanUrl } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { getUserFriendlyError } from "@/lib/contractErrorMapper";
 
 interface ProposalCardProps {
   proposalId: number;
@@ -135,9 +136,7 @@ export function ProposalCard({ proposalId }: ProposalCardProps) {
 
       {writeError && (
         <p className="text-sm text-destructive">
-          {writeError.message.includes("User rejected")
-            ? "Transaction cancelled."
-            : "Approval failed. Please try again."}
+          {getUserFriendlyError(writeError)}
         </p>
       )}
 

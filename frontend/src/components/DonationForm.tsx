@@ -16,6 +16,7 @@ import {
   PHP_PER_ETH,
 } from "@/lib/utils";
 import { ShieldCheck, Wallet } from "lucide-react";
+import { getUserFriendlyError } from "@/lib/contractErrorMapper";
 
 const QUICK_AMOUNTS = [500, 1000, 5000];
 
@@ -199,11 +200,7 @@ export function DonationForm() {
 
       {writeError && (
         <p className="mt-3 text-sm text-destructive">
-          {writeError.message.includes("User rejected")
-            ? "Transaction cancelled."
-            : writeError.message.includes("DisasterRelief:")
-              ? writeError.message.split("DisasterRelief: ")[1]
-              : "Something went wrong. Please try again."}
+          {getUserFriendlyError(writeError)}
         </p>
       )}
 

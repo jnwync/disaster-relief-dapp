@@ -70,6 +70,9 @@ contract DisasterRelief is ReentrancyGuard {
     /// @notice Emitted when a beneficiary is registered
     event BeneficiaryRegistered(address indexed beneficiary, address indexed registeredBy);
 
+    /// @notice Emitted when a beneficiary is removed
+    event BeneficiaryRemoved(address indexed beneficiary, address indexed removedBy);
+
     /// @notice Emitted when a disbursement proposal is created
     event ProposalCreated(
         uint256 indexed proposalId,
@@ -213,6 +216,16 @@ contract DisasterRelief is ReentrancyGuard {
 
         beneficiaries[_beneficiary] = true;
         emit BeneficiaryRegistered(_beneficiary, msg.sender);
+    }
+
+    /// @notice Remove an address from eligible beneficiaries
+    /// @param _beneficiary Address to remove
+    function removeBeneficiary(address _beneficiary) external onlyValidator whenActive {
+        require(_beneficiary != address(0), "DisasterRelief: invalid beneficiary address");
+        require(beneficiaries[_beneficiary], "DisasterRelief: beneficiary not registered");
+
+        beneficiaries[_beneficiary] = false;
+        emit BeneficiaryRemoved(_beneficiary, msg.sender);
     }
 
     /// @notice Create a proposal to disburse funds to a registered beneficiary

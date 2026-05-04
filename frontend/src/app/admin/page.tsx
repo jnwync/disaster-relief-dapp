@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -15,11 +15,102 @@ import {
   usePublicClient,
   useWatchContractEvent,
 } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { parseEther, formatEther, parseAbiItem } from "viem";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
-import { useEffect } from "react";
+import { truncateAddress } from "@/lib/utils";
+
+const BENEFICIARY_REGISTERED_EVENT = parseAbiItem(
+  "event BeneficiaryRegistered(address indexed beneficiary, address indexed registeredBy)"
+);
+const BENEFICIARY_REMOVED_EVENT = parseAbiItem(
+  "event BeneficiaryRemoved(address indexed beneficiary, address indexed removedBy)"
+);
 
 export default function AdminPage() {
+  const publicClient = usePublicClient();
+  const [registeredBeneficiaries, setRegisteredBeneficiaries] = useState<string[]>([]);
+  const [selectedBeneficiary, setSelectedBeneficiary] = useState("");
+  const [isLoadingBeneficiaries, setIsLoadingBeneficiaries] = useState(false);
+  const [beneficiaryError, setBeneficiaryError] = useState("");
+
+  const fetchBeneficiaries = useCallback(async () => {
+    if (!publicClient) return;
+
+    setIsLoadingBeneficiaries(true);
+    setBeneficiaryError("");
+
+    try {
+      const currentBlock = await publicClient.getBlockNumber();
+      const fromBlock = currentBlock > 5000n ? currentBlock - 5000n : 0n;
+
+      const [registeredLogs, removedLogs] = await Promise.all([
+        publicClient.getLogs({
+          address: CONTRACT_ADDRESS,
+          event: BENEFICIARY_REGISTERED_EVENT,
+          fromBlock,
+          toBlock: "latest",
+        }),
+        publicClient.getLogs({
+          address: CONTRACT_ADDRESS,
+          event: BENEFICIARY_REMOVED_EVENT,
+          fromBlock,
+          toBlock: "latest",
+        }),
+      ]);
+
+      const activeBeneficiaries = new Set<string>();
+
+      for (const log of registeredLogs) {
+        const beneficiary = (log.args as { beneficiary?: string }).beneficiary;
+        if (beneficiary) {
+          activeBeneficiaries.add(beneficiary);
+        }
+      }
+
+      for (const log of removedLogs) {
+        const beneficiary = (log.args as { beneficiary?: string }).beneficiary;
+        if (beneficiary) {
+          activeBeneficiaries.delete(beneficiary);
+        }
+      }
+
+      const list = Array.from(activeBeneficiaries).sort((a, b) =>
+        a.localeCompare(b)
+      );
+
+      setRegisteredBeneficiaries(list);
+
+      if (list.length === 0) {
+        setSelectedBeneficiary("");
+      } else if (!list.includes(selectedBeneficiary)) {
+        setSelectedBeneficiary(list[0]);
+      }
+    } catch (error) {
+      console.error("Failed to load beneficiaries:", error);
+      setBeneficiaryError("Unable to load beneficiaries right now.");
+    } finally {
+      setIsLoadingBeneficiaries(false);
+    }
+  }, [publicClient, selectedBeneficiary]);
+
+  useEffect(() => {
+    fetchBeneficiaries();
+  }, [fetchBeneficiaries]);
+
+  useWatchContractEvent({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    eventName: "BeneficiaryRegistered",
+    onLogs: () => fetchBeneficiaries(),
+  });
+
+  useWatchContractEvent({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    eventName: "BeneficiaryRemoved",
+    onLogs: () => fetchBeneficiaries(),
+  });
+
   // ----- Global Fund Status -----
   const { data: isActive, refetch: refetchIsActive } = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -49,6 +140,7 @@ export default function AdminPage() {
   const [beneficiaryAddress, setBeneficiaryAddress] = useState("");
 
   const { writeContract: writeRegister, isPending: isPendingRegister } = useWriteContract();
+  const { writeContract: writeRemove, isPending: isPendingRemove } = useWriteContract();
 
   const handleRegisterBeneficiary = () => {
     if (!beneficiaryAddress) return;
@@ -60,44 +152,16 @@ export default function AdminPage() {
     });
   };
 
-  const publicClient = usePublicClient();
-  const [beneficiariesList, setBeneficiariesList] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchBeneficiaries = async () => {
-      if (!publicClient) return;
-      try {
-        const logs = await publicClient.getContractEvents({
-          address: CONTRACT_ADDRESS,
-          abi: CONTRACT_ABI,
-          eventName: "BeneficiaryRegistered",
-          fromBlock: 0n,
-          toBlock: "latest",
-        });
-        const addresses = logs.map(
-          (log: any) => log.args.beneficiary as string
-        );
-        setBeneficiariesList([...new Set(addresses)]);
-      } catch (err) {
-        console.error("Failed to fetch beneficiaries:", err);
-      }
-    };
-    fetchBeneficiaries();
-  }, [publicClient]);
-
-  useWatchContractEvent({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    eventName: "BeneficiaryRegistered",
-    onLogs(logs) {
-      const newAddresses = logs.map(
-        (log: any) => log.args.beneficiary as string
-      );
-      setBeneficiariesList((prev) => [
-        ...new Set([...prev, ...newAddresses]),
-      ]);
-    },
-  });
+  const handleRemoveBeneficiary = () => {
+    if (!selectedBeneficiary) return;
+    writeRemove({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: "removeBeneficiary",
+      args: [selectedBeneficiary],
+    });
+  };
 
   // ----- Create Funding Proposal -----
   const [proposalRecipient, setProposalRecipient] = useState("");
@@ -290,31 +354,69 @@ export default function AdminPage() {
             </div>
           </Card>
 
-          {/* Registered Beneficiaries List */}
+          {/* Remove Beneficiary */}
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold">Registered Beneficiaries</h2>
-              <Badge variant="outline">{beneficiariesList.length} total</Badge>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Remove Beneficiary</h2>
+              <Badge variant="outline">
+                {registeredBeneficiaries.length} active
+              </Badge>
             </div>
-            {beneficiariesList.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground border rounded-md border-dashed">
-                No beneficiaries registered yet.
+            <p className="mt-2 text-sm text-muted-foreground">
+              Select a registered beneficiary to remove from the allowlist.
+            </p>
+            <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_200px]">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">
+                  Registered Beneficiary
+                </label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={selectedBeneficiary}
+                  onChange={(event) => setSelectedBeneficiary(event.target.value)}
+                  disabled={isLoadingBeneficiaries || registeredBeneficiaries.length === 0}
+                >
+                  <option value="" disabled>
+                    {isLoadingBeneficiaries ? "Loading beneficiaries..." : "Select a beneficiary"}
+                  </option>
+                  {registeredBeneficiaries.map((beneficiary) => (
+                    <option key={beneficiary} value={beneficiary}>
+                      {truncateAddress(beneficiary)}
+                    </option>
+                  ))}
+                </select>
+                {selectedBeneficiary && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Selected: {selectedBeneficiary}
+                  </p>
+                )}
+                {beneficiaryError && (
+                  <p className="mt-2 text-sm text-destructive">
+                    {beneficiaryError}
+                  </p>
+                )}
+                {!isLoadingBeneficiaries &&
+                  !beneficiaryError &&
+                  registeredBeneficiaries.length === 0 && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      No registered beneficiaries found.
+                    </p>
+                  )}
               </div>
-            ) : (
-              <div className="space-y-3">
-                {beneficiariesList.map((addr) => (
-                  <div
-                    key={addr}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md"
-                  >
-                    <span className="font-mono text-sm break-all">{addr}</span>
-                    <Badge variant="outline" className="mt-2 sm:mt-0 w-fit">
-                      Eligible
-                    </Badge>
-                  </div>
-                ))}
+              <div className="flex items-end">
+                <Button
+                  className="w-full"
+                  onClick={handleRemoveBeneficiary}
+                  disabled={
+                    isPendingRemove ||
+                    !selectedBeneficiary ||
+                    isLoadingBeneficiaries
+                  }
+                >
+                  {isPendingRemove ? "Removing..." : "Remove Beneficiary"}
+                </Button>
               </div>
-            )}
+            </div>
           </Card>
 
           {/* Create Funding Proposal */}

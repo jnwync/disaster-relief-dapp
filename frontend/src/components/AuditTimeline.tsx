@@ -296,9 +296,12 @@ export function AuditTimeline() {
       setFetchError("");
       const allEvents: AuditEvent[] = [];
 
+      const currentBlock = await client.getBlockNumber();
+      const fromBlock = currentBlock > 5000n ? currentBlock - 5000n : 0n;
+
       const logs = await client.getLogs({
         address: CONTRACT_ADDRESS,
-        fromBlock: 0n,
+        fromBlock,
         toBlock: "latest",
       });
 

@@ -12,7 +12,11 @@ async function main() {
     throw new Error("Missing VALIDATOR_1, VALIDATOR_2, or VALIDATOR_3 in .env");
   }
 
-  const validators: [string, string, string] = [validator1, validator2, validator3];
+  const validators: [string, string, string] = [
+    validator1,
+    validator2,
+    validator3,
+  ];
   const disasterName = "Hurricane Relief";
 
   console.log("Deploying DisasterRelief...");
@@ -29,24 +33,27 @@ async function main() {
   console.log("DisasterRelief deployed to:", contractAddress);
   console.log("Network:", network.name, "ChainId:", network.chainId.toString());
 
-  // Fund the contract with 10 ETH for testing
+  // Fund the contract with 0.001 ETH for testing
   const [deployer] = await hre.ethers.getSigners();
-  const fundAmount = hre.ethers.parseEther("10");
+  const fundAmount = hre.ethers.parseEther("0.001");
   const tx = await deployer.sendTransaction({
     to: contractAddress,
     value: fundAmount,
   });
   await tx.wait();
-  console.log(`Funded contract with 10 ETH (tx: ${tx.hash})`);
+  console.log(`Funded contract with 0.001 ETH (tx: ${tx.hash})`);
 
   // Export ABI
   const artifactPath = path.join(
     __dirname,
-    "../artifacts/contracts/DisasterRelief.sol/DisasterRelief.json"
+    "../artifacts/contracts/DisasterRelief.sol/DisasterRelief.json",
   );
   const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
 
-  const frontendContractsDir = path.join(__dirname, "../frontend/src/contracts");
+  const frontendContractsDir = path.join(
+    __dirname,
+    "../frontend/src/contracts",
+  );
   if (!fs.existsSync(frontendContractsDir)) {
     fs.mkdirSync(frontendContractsDir, { recursive: true });
   }
